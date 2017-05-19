@@ -7,6 +7,7 @@ menuconfig POWER_SUPPLY
 	  (if selected below).
 
 if POWER_SUPPLY
+source "drivers/power/supply/ASUS_BATTERY/ME176C/Kconfig"
 
 config POWER_SUPPLY_DEBUG
 	bool "Power supply debug"
