@@ -33,8 +33,8 @@
 #include <linux/usb/phy.h>
 #include <linux/notifier.h>
 #include <linux/extcon.h>
-#include <linux/mfd/intel_mid_pmic.h>
-#include <asm/intel_crystalcove_pwrsrc.h>
+#include <linux/regmap.h>
+#include <linux/mfd/intel_soc_pmic.h>
 
 #define CRYSTALCOVE_PWRSRCIRQ_REG	0x03
 #define CRYSTALCOVE_MPWRSRCIRQS0_REG	0x0F
@@ -52,35 +52,19 @@
 #define VBUSCNTL_EN			(1 << 0)
 #define VBUSCNTL_SEL			(1 << 1)
 
-#define PWRSRC_EXTCON_CABLE_AC		"CHARGER_AC"
-#define PWRSRC_EXTCON_CABLE_USB		"USB"
 #define PWRSRC_DRV_NAME			"crystal_cove_pwrsrc"
 
-/*
- * Crystal Cove PMIC can not do USB type detection.
- * So if we find extcon USB_SDP cable then unregister
- * the pwrsrc extcon device as BYT platform is not
- * supporting AC and USB simultaneously.
- */
-#define EXTCON_CABLE_SDP		"CHARGER_USB_SDP"
-
-#ifndef DEBUG
-#define dev_dbg(dev, format, arg...)		\
-	dev_printk(KERN_DEBUG, dev, format, ##arg)
-#endif
-
-static const char *byt_extcon_cable[] = {
-	PWRSRC_EXTCON_CABLE_AC,
-	PWRSRC_EXTCON_CABLE_USB,
-	NULL,
+static const unsigned int byt_extcon_cable[] = {
+	EXTCON_CHG_AC,
+	EXTCON_USB,
+	EXTCON_NONE,
 };
 
 struct pwrsrc_info {
 	struct platform_device *pdev;
 	int irq;
-	struct usb_phy *otg;
 	struct extcon_dev *edev;
-	struct notifier_block	nb;
+	struct regmap *regmap;
 };
 
 static char *pwrsrc_resetsrc0_info[] = {
@@ -110,102 +94,58 @@ static char *pwrsrc_wakesrc_info[] = {
 };
 
 /* Decode and log the given "reset source indicator" register, then clear it */
-static void crystalcove_pwrsrc_log_rsi(struct platform_device *pdev,
+static void crystalcove_pwrsrc_log_rsi(struct pwrsrc_info *info,
 					char **pwrsrc_rsi_info,
-					int reg_s)
+					unsigned int reg_s)
 {
 	char *rsi_info = pwrsrc_rsi_info[0];
-	int val, i = 0;
-	int bit_select, clear_mask = 0x0;
+	int ret;
+	unsigned int val, i = 0;
+	unsigned int bit_select, clear_mask = 0x0;
 
-	val = intel_mid_pmic_readb(reg_s);
+	ret = regmap_read(info->regmap, reg_s, &val);
+	if (ret) {
+		dev_err(&info->pdev->dev, "Failed to read from regmap: %d\n", ret);
+		return;
+	}
+
 	while (rsi_info) {
 		bit_select = (1 << i);
 		if (val & bit_select) {
-			dev_info(&pdev->dev, "%s\n", rsi_info);
+			dev_info(&info->pdev->dev, "%s\n", rsi_info);
 			clear_mask |= bit_select;
 		}
 		rsi_info = pwrsrc_rsi_info[++i];
 	}
 
 	/* Clear the register value for next reboot (write 1 to clear bit) */
-	intel_mid_pmic_writeb(reg_s, clear_mask);
+	regmap_write(info->regmap, reg_s, clear_mask);
 }
 
-/*
- * D1 ensures SW control: D1[0]  = HW mode, D1[1] = SW mode
- * D0 control the VBUS: D0[0] = disable VBUS, D0[1] = enable VBUS
- */
-int crystal_cove_enable_vbus(void)
+static void handle_pwrsrc_event(struct pwrsrc_info *info, unsigned int pwrsrcirq)
 {
+	unsigned int spwrsrc;
 	int ret;
 
-	ret = intel_mid_pmic_writeb(CRYSTALCOVE_VBUSCNTL_REG, 0x03);
-	return ret;
-}
-EXPORT_SYMBOL(crystal_cove_enable_vbus);
-
-int crystal_cove_disable_vbus(void)
-{
-	int ret;
-
-	ret = intel_mid_pmic_writeb(CRYSTALCOVE_VBUSCNTL_REG, 0x02);
-	return ret;
-}
-EXPORT_SYMBOL(crystal_cove_disable_vbus);
-
-int crystal_cove_vbus_on_status(void)
-{
-	int ret;
-
-	ret = intel_mid_pmic_readb(CRYSTALCOVE_SPWRSRC_REG);
-	if (ret < 0)
-		return ret;
-
-	if (ret & PWRSRC_VBUS_DET)
-		return  1;
-
-	return 0;
-}
-EXPORT_SYMBOL(crystal_cove_vbus_on_status);
-
-static void handle_pwrsrc_event(struct pwrsrc_info *info, int pwrsrcirq)
-{
-	int spwrsrc, mask;
-
-	spwrsrc = intel_mid_pmic_readb(CRYSTALCOVE_SPWRSRC_REG);
-	if (spwrsrc < 0)
+	ret = regmap_read(info->regmap, CRYSTALCOVE_SPWRSRC_REG, &spwrsrc);
+	if (ret)
 		goto pmic_read_fail;
 
 	if (pwrsrcirq & PWRSRC_VBUS_DET) {
 		if (spwrsrc & PWRSRC_VBUS_DET) {
 			dev_dbg(&info->pdev->dev, "VBUS attach event\n");
-			mask = 1;
-			if (info->edev)
-				extcon_set_cable_state(info->edev,
-						PWRSRC_EXTCON_CABLE_USB, true);
+			extcon_set_state_sync(info->edev, EXTCON_USB, true);
 		} else {
 			dev_dbg(&info->pdev->dev, "VBUS detach event\n");
-			mask = 0;
-			if (info->edev)
-				extcon_set_cable_state(info->edev,
-						PWRSRC_EXTCON_CABLE_USB, false);
+			extcon_set_state_sync(info->edev, EXTCON_USB, false);
 		}
-		/* notify OTG driver */
-		if (info->otg)
-			atomic_notifier_call_chain(&info->otg->notifier,
-				USB_EVENT_VBUS, &mask);
 	} else if (pwrsrcirq & PWRSRC_DCIN_DET) {
 		if (spwrsrc & PWRSRC_DCIN_DET) {
 			dev_dbg(&info->pdev->dev, "ADP attach event\n");
-			if (info->edev)
-				extcon_set_cable_state(info->edev,
-						PWRSRC_EXTCON_CABLE_AC, true);
+			extcon_set_state_sync(info->edev, EXTCON_CHG_AC, true);
 		} else {
 			dev_dbg(&info->pdev->dev, "ADP detach event\n");
-			if (info->edev)
-				extcon_set_cable_state(info->edev,
-						PWRSRC_EXTCON_CABLE_AC, false);
+			extcon_set_state_sync(info->edev, EXTCON_CHG_AC, false);
 		}
 	} else if (pwrsrcirq & PWRSRC_BAT_DET) {
 		if (spwrsrc & PWRSRC_BAT_DET)
@@ -219,57 +159,27 @@ static void handle_pwrsrc_event(struct pwrsrc_info *info, int pwrsrcirq)
 	return;
 
 pmic_read_fail:
-	dev_err(&info->pdev->dev, "SPWRSRC read failed:%d\n", spwrsrc);
+	dev_err(&info->pdev->dev, "SPWRSRC read failed:%d\n", ret);
 	return;
 }
 
 static irqreturn_t crystalcove_pwrsrc_isr(int irq, void *data)
 {
 	struct pwrsrc_info *info = data;
-	int pwrsrcirq;
+	int ret;
+	unsigned int pwrsrcirq;
 
-	pwrsrcirq = intel_mid_pmic_readb(CRYSTALCOVE_PWRSRCIRQ_REG);
-	if (pwrsrcirq < 0) {
-		dev_err(&info->pdev->dev, "PWRSRCIRQ read failed\n");
-		goto pmic_irq_fail;
+	ret = regmap_read(info->regmap, CRYSTALCOVE_PWRSRCIRQ_REG, &pwrsrcirq);
+	if (ret) {
+		dev_err(&info->pdev->dev, "PWRSRCIRQ read failed: %d\n", ret);
+		return IRQ_HANDLED;
 	}
 
 	dev_dbg(&info->pdev->dev, "pwrsrcirq=%x\n", pwrsrcirq);
 	handle_pwrsrc_event(info, pwrsrcirq);
 
-pmic_irq_fail:
-	intel_mid_pmic_writeb(CRYSTALCOVE_PWRSRCIRQ_REG, pwrsrcirq);
+	regmap_write(info->regmap, CRYSTALCOVE_PWRSRCIRQ_REG, pwrsrcirq);
 	return IRQ_HANDLED;
-}
-
-static int pwrsrc_extcon_dev_reg_callback(struct notifier_block *nb,
-					unsigned long event, void *data)
-{
-	struct pwrsrc_info *info = container_of(nb, struct pwrsrc_info, nb);
-	int mask = 0;
-
-	/* check if there is other extcon cables */
-	if (extcon_num_of_cable_devs(EXTCON_CABLE_SDP)) {
-		dev_info(&info->pdev->dev, "unregistering otg device\n");
-		/* Send VBUS disconnect as another cable detection
-		 * driver registered to extcon framework and notifies
-		 * OTG on cable connect */
-		if (info->otg)
-			atomic_notifier_call_chain(&info->otg->notifier,
-				USB_EVENT_VBUS, &mask);
-		/* Set VBUS supply mode to SW control mode */
-		intel_mid_pmic_writeb(CRYSTALCOVE_VBUSCNTL_REG, 0x02);
-		if (info->nb.notifier_call) {
-			extcon_dev_unregister_notify(&info->nb);
-			info->nb.notifier_call = NULL;
-		}
-		if (info->otg) {
-			usb_put_phy(info->otg);
-			info->otg = NULL;
-		}
-	}
-
-	return NOTIFY_OK;
 }
 
 static int pwrsrc_extcon_registration(struct pwrsrc_info *info)
@@ -277,54 +187,31 @@ static int pwrsrc_extcon_registration(struct pwrsrc_info *info)
 	int ret = 0;
 
 	/* register with extcon */
-	info->edev = kzalloc(sizeof(struct extcon_dev), GFP_KERNEL);
-	if (!info->edev) {
+	info->edev = devm_extcon_dev_allocate(&info->pdev->dev, byt_extcon_cable);
+	if (IS_ERR(info->edev)) {
 		dev_err(&info->pdev->dev, "mem alloc failed\n");
-		ret = -ENOMEM;
-		goto pwrsrc_extcon_fail;
+		return -ENOMEM;
 	}
-	info->edev->name = "BYT-Charger";
-	info->edev->supported_cable = byt_extcon_cable;
-	ret = extcon_dev_register(info->edev, &info->pdev->dev);
+
+	ret = devm_extcon_dev_register(&info->pdev->dev, info->edev);
 	if (ret) {
 		dev_err(&info->pdev->dev, "extcon registration failed!!\n");
-		kfree(info->edev);
-		goto pwrsrc_extcon_fail;
+		return ret;
 	}
 
-	if (extcon_num_of_cable_devs(EXTCON_CABLE_SDP)) {
-		dev_info(&info->pdev->dev,
-			"extcon device is already registered\n");
-		/* Set VBUS supply mode to SW control mode */
-		intel_mid_pmic_writeb(CRYSTALCOVE_VBUSCNTL_REG, 0x02);
-	} else {
-		/* Workaround: Set VBUS supply mode to HW control mode */
-		intel_mid_pmic_writeb(CRYSTALCOVE_VBUSCNTL_REG, 0x00);
+	/* Workaround: Set VBUS supply mode to HW control mode */
+	regmap_write(info->regmap, CRYSTALCOVE_VBUSCNTL_REG, 0x00);
 
-		/* OTG notification */
-		info->otg = usb_get_phy(USB_PHY_TYPE_USB2);
-		if (IS_ERR_OR_NULL(info->otg)) {
-			info->otg = NULL;
-			dev_warn(&info->pdev->dev, "Failed to get otg transceiver!!\n");
-			extcon_dev_unregister(info->edev);
-			kfree(info->edev);
-			ret = -ENODEV;
-			goto pwrsrc_extcon_fail;
-		}
-		info->nb.notifier_call = &pwrsrc_extcon_dev_reg_callback;
-		extcon_dev_register_notify(&info->nb);
-	}
-
-pwrsrc_extcon_fail:
 	return ret;
 }
 
 static int crystalcove_pwrsrc_probe(struct platform_device *pdev)
 {
+	struct intel_soc_pmic *pmic = dev_get_drvdata(pdev->dev.parent);
 	struct pwrsrc_info *info;
-	int ret, pwrsrcirq = 0x0;
+	int ret;
 
-	info = kzalloc(sizeof(*info), GFP_KERNEL);
+	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
 	if (!info) {
 		dev_err(&pdev->dev, "mem alloc failed\n");
 		return -ENOMEM;
@@ -332,66 +219,37 @@ static int crystalcove_pwrsrc_probe(struct platform_device *pdev)
 
 	info->pdev = pdev;
 	info->irq = platform_get_irq(pdev, 0);
+	info->regmap = pmic->regmap;
 	platform_set_drvdata(pdev, info);
 
 	/* Log reason for last reset and wake events */
-	crystalcove_pwrsrc_log_rsi(pdev, pwrsrc_resetsrc0_info,
+	crystalcove_pwrsrc_log_rsi(info, pwrsrc_resetsrc0_info,
 				CRYSTALCOVE_RESETSRC0_REG);
-	crystalcove_pwrsrc_log_rsi(pdev, pwrsrc_resetsrc1_info,
+	crystalcove_pwrsrc_log_rsi(info, pwrsrc_resetsrc1_info,
 				CRYSTALCOVE_RESETSRC1_REG);
-	crystalcove_pwrsrc_log_rsi(pdev, pwrsrc_wakesrc_info,
+	crystalcove_pwrsrc_log_rsi(info, pwrsrc_wakesrc_info,
 				CRYSTALCOVE_WAKESRC_REG);
 
 	ret = pwrsrc_extcon_registration(info);
 	if (ret)
-		goto extcon_reg_failed;
+		return ret;
 
-	/* check if device is already connected */
-	if (info->otg)
-		pwrsrcirq |= PWRSRC_VBUS_DET;
-	if (info->edev)
-		pwrsrcirq |= PWRSRC_DCIN_DET;
-	if (pwrsrcirq)
-		handle_pwrsrc_event(info, pwrsrcirq);
+	// Check current state
+	handle_pwrsrc_event(info, PWRSRC_VBUS_DET | PWRSRC_DCIN_DET);
 
-	ret = request_threaded_irq(info->irq, NULL, crystalcove_pwrsrc_isr,
+	ret = devm_request_threaded_irq(&info->pdev->dev, info->irq, NULL,
+				crystalcove_pwrsrc_isr,
 				IRQF_ONESHOT | IRQF_NO_SUSPEND,
 				PWRSRC_DRV_NAME, info);
 	if (ret) {
 		dev_err(&pdev->dev, "unable to register irq %d\n", info->irq);
-		goto intr_teg_failed;
+		return ret;
 	}
 
 	/* unmask the PWRSRC interrupts */
-	intel_mid_pmic_writeb(CRYSTALCOVE_MPWRSRCIRQS0_REG, 0x00);
-	intel_mid_pmic_writeb(CRYSTALCOVE_MPWRSRCIRQSX_REG, 0x00);
+	regmap_write(info->regmap, CRYSTALCOVE_MPWRSRCIRQS0_REG, 0x00);
+	regmap_write(info->regmap, CRYSTALCOVE_MPWRSRCIRQSX_REG, 0x00);
 
-	return 0;
-
-intr_teg_failed:
-	if (info->otg)
-		usb_put_phy(info->otg);
-	if (info->edev) {
-		extcon_dev_unregister(info->edev);
-		kfree(info->edev);
-	}
-extcon_reg_failed:
-	kfree(info);
-	return ret;
-}
-
-static int crystalcove_pwrsrc_remove(struct platform_device *pdev)
-{
-	struct pwrsrc_info *info = platform_get_drvdata(pdev);
-
-	free_irq(info->irq, info);
-	if (info->otg)
-		usb_put_phy(info->otg);
-	if (info->edev) {
-		extcon_dev_unregister(info->edev);
-		kfree(info->edev);
-	}
-	kfree(info);
 	return 0;
 }
 
@@ -417,7 +275,6 @@ static const struct dev_pm_ops crystalcove_pwrsrc_driver_pm_ops = {
 
 static struct platform_driver crystalcove_pwrsrc_driver = {
 	.probe = crystalcove_pwrsrc_probe,
-	.remove = crystalcove_pwrsrc_remove,
 	.driver = {
 		.name = PWRSRC_DRV_NAME,
 		.pm = &crystalcove_pwrsrc_driver_pm_ops,
