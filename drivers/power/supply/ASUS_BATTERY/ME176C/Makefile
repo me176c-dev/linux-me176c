@@ -1,0 +1,8 @@
+#
+#  Copyright (c) 2013, ASUSTek, Inc. All Rights Reserved.
+#
+
+KBUILD_CFLAGS += -DASUS_USER_BUILD
+
+obj-$(CONFIG_ASUS_BATTERY_ME176C_CHARGER_BQ24192)	+= bq24192_charger.o
+obj-$(CONFIG_ASUS_BATTERY_ME176C_UPI_BATTERY)	+= ug31xx/
