@@ -134,7 +134,6 @@ config EXTCON_USB_GPIO
 
 config INTEL_CRYSTALCOVE_PWRSRC
 	tristate "Crystal Cove PMIC Power Source detection driver"
-	depends on CRYSTAL_COVE
 	help
 	  This driver does the Crystal Cove PMIC Power source detection.
 	  If unsure, say N.
