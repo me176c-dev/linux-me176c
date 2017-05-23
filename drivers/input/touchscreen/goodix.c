@@ -31,6 +31,13 @@
 #include <linux/of.h>
 #include <asm/unaligned.h>
 
+static const struct acpi_gpio_params reset_gpio = { 0, 0, false };
+
+static const struct acpi_gpio_mapping goodix_acpi_gpios[] = {
+	{ "reset-gpios", &reset_gpio, 1 },
+	{ },
+};
+
 struct goodix_ts_data {
 	struct i2c_client *client;
 	struct input_dev *input_dev;
@@ -445,6 +452,11 @@ static int goodix_get_gpio_config(struct goodix_ts_data *ts)
 		return -EINVAL;
 	dev = &ts->client->dev;
 
+	/* ACPI contains only reset GPIO, register so it's not used for interrupt */
+	error = acpi_dev_add_driver_gpios(ACPI_COMPANION(dev), goodix_acpi_gpios);
+	if (error)
+		return error;
+
 	/* Get the interrupt GPIO pin number */
 	gpiod = devm_gpiod_get_optional(dev, GOODIX_GPIO_INT_NAME, GPIOD_IN);
 	if (IS_ERR(gpiod)) {
@@ -768,6 +780,7 @@ static int goodix_ts_remove(struct i2c_client *client)
 	if (ts->gpiod_int && ts->gpiod_rst)
 		wait_for_completion(&ts->firmware_loading_complete);
 
+	acpi_dev_remove_driver_gpios(ACPI_COMPANION(&client->dev));
 	return 0;
 }
 

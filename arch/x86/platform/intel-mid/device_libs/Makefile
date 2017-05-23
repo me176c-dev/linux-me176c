@@ -1,3 +1,4 @@
+ifdef CONFIG_X86_INTEL_MID
 # Family-Level Interface Shim (FLIS)
 obj-$(subst m,y,$(CONFIG_PINCTRL_MERRIFIELD)) += platform_mrfld_pinctrl.o
 # SDHCI Devices
@@ -29,3 +30,6 @@ obj-$(subst m,y,$(CONFIG_GPIO_PCA953X)) += platform_tca6416.o
 # MISC Devices
 obj-$(subst m,y,$(CONFIG_KEYBOARD_GPIO)) += platform_gpio_keys.o
 obj-$(subst m,y,$(CONFIG_INTEL_MID_WATCHDOG)) += platform_mrfld_wdt.o
+endif
+
+obj-y += me176c/
