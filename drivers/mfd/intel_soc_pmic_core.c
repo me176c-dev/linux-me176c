@@ -28,6 +28,12 @@
 #include <linux/pwm.h>
 #include "intel_soc_pmic_core.h"
 
+#ifdef CONFIG_INTEL_MID_PMIC_COMPAT
+// Global instance of PMIC for Intel MID compatibility
+// TODO: Figure out better solution to access it from various drivers
+struct intel_soc_pmic *intel_pmic = NULL;
+#endif
+
 /* Lookup table for the Panel Enable/Disable line as GPIO signals */
 static struct gpiod_lookup_table panel_gpio_table = {
 	/* Intel GFX is consumer */
@@ -109,6 +115,10 @@ static int intel_soc_pmic_i2c_probe(struct i2c_client *i2c,
 	/* Add lookup table for crc-pwm */
 	pwm_add_table(crc_pwm_lookup, ARRAY_SIZE(crc_pwm_lookup));
 
+#ifdef CONFIG_INTEL_MID_PMIC_COMPAT
+	intel_pmic = pmic;
+#endif
+
 	ret = mfd_add_devices(dev, -1, config->cell_dev,
 			      config->n_cell_devs, NULL, 0,
 			      regmap_irq_get_domain(pmic->irq_chip_data));
@@ -135,6 +145,10 @@ static int intel_soc_pmic_i2c_remove(struct i2c_client *i2c)
 	pwm_remove_table(crc_pwm_lookup, ARRAY_SIZE(crc_pwm_lookup));
 
 	mfd_remove_devices(&i2c->dev);
+
+#ifdef CONFIG_INTEL_MID_PMIC_COMPAT
+	intel_pmic = NULL;
+#endif
 
 	return 0;
 }

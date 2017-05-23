@@ -419,6 +419,10 @@ config INTEL_SOC_PMIC
 	  thermal, charger and related power management functions
 	  on these systems.
 
+config INTEL_MID_PMIC_COMPAT
+	bool "Intel MID PMIC Compatibility Interface"
+	depends on INTEL_SOC_PMIC
+
 config MFD_INTEL_LPSS
 	tristate
 	select COMMON_CLK
