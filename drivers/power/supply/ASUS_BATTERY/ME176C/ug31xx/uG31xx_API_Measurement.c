@@ -1126,13 +1126,13 @@ void TimeTick(MeasDataInternalType *obj)
     }
     /// [AT-PM] : Use conversion count to estimate delta time ; 06/11/2013
     obj->info->deltaTime = obj->info->deltaTime*obj->info->adc1ConvertTime/TIME_CONVERT_TIME_TO_MSEC;
-    UG31_LOGE("[%s]: In internal suspend mode, deltaTime = %d\n", __func__,
+    UG31_LOGDD("[%s]: In internal suspend mode, deltaTime = %d\n", __func__,
               (int)obj->info->deltaTime);
     if(MEAS_LEAVE_SUSPEND_MODE(obj->info->status) == _UPI_TRUE_)
     {
       obj->info->status = obj->info->status & (~MEAS_STATUS_LAST_IN_SUSPEND_MODE);
       obj->info->lastTimeTick = GetTickCount();
-      UG31_LOGE("[%s]: Leave internal suspend mode, lastTimeTick = %d\n", __func__,
+      UG31_LOGDD("[%s]: Leave internal suspend mode, lastTimeTick = %d\n", __func__,
                 (int)obj->info->lastTimeTick);
     }
     return;
@@ -1236,7 +1236,7 @@ void _ReadRegister(_meas_u8_ addr, _meas_u8_ size, _meas_u8_ *rdata)
     {
       break;
     }
-    UG31_LOGE("[%s]: re-read i2c %x%x -> %x != %x%x (%d)\n", __func__,
+    UG31_LOGDD("[%s]: re-read i2c %x%x -> %x != %x%x (%d)\n", __func__,
               addr,
               *(rdata+1),
               *rdata,
@@ -1854,7 +1854,7 @@ _meas_u16_ CalibrateETCode(MeasDataInternalType *obj)
     }
     if(tmp16 < MIN_ET_CODE_DIFF)
     {
-      UG31_LOGE("[%s]: Exceed minimum ET code difference (%d < %d)\n", __func__, tmp16, MIN_ET_CODE_DIFF);
+      UG31_LOGDD("[%s]: Exceed minimum ET code difference (%d < %d)\n", __func__, tmp16, MIN_ET_CODE_DIFF);
       tmp16 = MIN_ET_CODE_DIFF;
     }
     tmp16 = tmp16 + obj->info->codeExtTemperature;
@@ -2231,7 +2231,7 @@ MEAS_RTN_CODE UpiMeasurement(MeasDataType *data, MEAS_SEL_CODE select)
   rtn = FetchAdcCode(obj);
   if((select == MEAS_SEL_ALL) || (select == MEAS_SEL_INITIAL))
   {
-  UG31_LOGE("[%s]: (%d-%d) V=%d, I=%d, IT=%d, ET=%d, CH=%d, CT=%d, %02x%02x %02x%02x%02x%02x %02x%02x%02x %02x%02x %02x%02x %02x%02x\n", __func__,
+  UG31_LOGDD("[%s]: (%d-%d) V=%d, I=%d, IT=%d, ET=%d, CH=%d, CT=%d, %02x%02x %02x%02x%02x%02x %02x%02x%02x %02x%02x %02x%02x %02x%02x\n", __func__,
               select, obj->info->fetchRetryCnt, obj->codeBat1, obj->codeCurrent,
               obj->codeIntTemperature, obj->codeExtTemperature, obj->codeCharge, obj->codeCounter,
               obj->reg14, obj->reg9C,
