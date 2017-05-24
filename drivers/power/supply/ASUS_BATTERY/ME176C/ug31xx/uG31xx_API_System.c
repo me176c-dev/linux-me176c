@@ -1613,7 +1613,7 @@ void UpiSaveBatInfoTOIC(SystemDataType *data)
               data->rmFromIC);
     data->rmFromIC = 0;
   }
-  UG31_LOGE("[%s]:timeTag =%d/%x ms,NAC = %d maH,LMD = %d maH\n",
+  UG31_LOGDD("[%s]:timeTag =%d/%x ms,NAC = %d maH,LMD = %d maH\n",
   						__func__,
   						(int)data->timeTagFromIC,
   						(int)data->timeTagFromIC,
