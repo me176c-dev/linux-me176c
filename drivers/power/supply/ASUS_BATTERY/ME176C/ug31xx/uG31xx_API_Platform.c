@@ -21,6 +21,7 @@
                                     2nd byte: had backup before */
 #define I2C_RETRY_CNT           (20)
 
+#ifdef CONFIG_ASUS_ENGINEER_MODE
 /**
  * ug31xx_restore_config_data - restore config data
  * @name : Power Supply name
@@ -118,6 +119,7 @@ int ug31xx_write_backup_tag(const char *name, u8 *data)
 
     return ret;
 }
+#endif
 
 #ifdef  uG31xx_OS_WINDOWS
 
@@ -1506,4 +1508,3 @@ void SleepMiniSecond(_upi_u32_ msec)
 
   #endif  ///< end of uG31xx_OS_WINDOWS
 }
-
