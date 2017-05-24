@@ -38,7 +38,6 @@
 #include <linux/version.h>
 
 #include <linux/timer.h>
-#include <linux/android_alarm.h>
 #include <linux/hrtimer.h>
 //Carlisle add for ACPI match ++
 #include <linux/acpi.h>
@@ -53,7 +52,7 @@
 #define UG31XX_SHOW_EXT_TEMP    ///< [FC] : Set temperature reference by external ; 09/30/2013
 #define UG31XX_MISC_DEV
 #define UG31XX_PROBE_CHARGER_OFF      ///< [AT-PM] : Used for charger off at probe ; 12/06/2013
-#define UG31XX_EARLY_SUSPEND			///< [AT-PM] : Used for early suspend instead of suspend ; 12/07/2013
+//#define UG31XX_EARLY_SUSPEND			///< [AT-PM] : Used for early suspend instead of suspend ; 12/07/2013
 #define UG31XX_KOBJECT      ///< [AT-PM] : Used for register kobject ; 12/23/2013
 #define UG31XX_USER_SPACE_ALGORITHM     ///< [AT-PM] : Used for user space algorithm operation ; 12/24/2013
 #define UG31XX_USER_SPACE_BACKUP        ///< [AT-PM] : Used for user space backup operation ; 12/30/2013
@@ -61,15 +60,17 @@
 //#define UG31XX_CALI_BO_EARLY_SUSPEND    ///< [AT-PM] : Used for calibrate board offset in early suspend ; 02/27/2014
 #define UG31XX_PROC_DEV
 
+#define UG31XX_EARLY_POWER_SUPPLY
 
-#include <linux/switch.h>
-#include <linux/earlysuspend.h>
 #define ENABLE_BATTERY_SHIFTx
 bool ug31xx_probe_done = false;//TOM
 EXPORT_SYMBOL(ug31xx_probe_done);//TOM
 int Status;
 //extern int entry_mode;
+
+#ifdef CONFIG_SWITCH
 struct switch_dev batt_dev;
+#endif
 
 #define UG31XX_USER_DAEMON_VER_LENGTH    (16)
 #define UG31XX_CALI_BO_FACTORY_DELAY	 (300)
@@ -283,6 +284,7 @@ static int ug31xx_backup_file_status = 0;
 static unsigned short design_capacity = 0;
 static bool probe_with_cable = false;
 static bool in_early_suspend = false;
+static int rsoc_before_suspend = 0;
 static int delta_q_in_suspend = 0;
 static bool user_space_algorithm_response = true;
 static int user_space_algorithm_prev_fc_sts = 0;
@@ -1317,7 +1319,7 @@ static char *supply_list[] = {
 
 #ifdef	UG31XX_REGISTER_POWERSUPPLY
 
-static struct power_supply ug31xx_supply[] = {
+static struct power_supply_desc ug31xx_supply_desc[] = {
 	{
 		.name			= "battery",
 		.type			= POWER_SUPPLY_TYPE_BATTERY,
@@ -1351,6 +1353,8 @@ static struct power_supply ug31xx_supply[] = {
 	},
 #endif	///< end of UPI_CALLBACK_FUNC
 };
+
+static struct power_supply *ug31xx_supply[ARRAY_SIZE(ug31xx_supply_desc)];
 
 static int ug31xx_battery_get_property(struct power_supply *psy,
 				       enum power_supply_property psp,
@@ -1614,13 +1618,16 @@ static int ug31xx_powersupply_init(struct i2c_client *client)
 {
   #ifdef  UG31XX_REGISTER_POWERSUPPLY
 	int i, ret;
-	for (i = 0; i < ARRAY_SIZE(ug31xx_supply); i++) {
-		ret = power_supply_register(&client->dev, &ug31xx_supply[i]);
-		if (ret) {
+	for (i = 0; i < ARRAY_SIZE(ug31xx_supply_desc); i++) {
+		ug31xx_supply[i] = power_supply_register(&client->dev,
+								&ug31xx_supply_desc[i], NULL);
+		if (IS_ERR(ug31xx_supply[i])) {
+			ret = PTR_ERR(ug31xx_supply[i]);
+			ug31xx_supply[i] = NULL;
 			GAUGE_err("[%s] Failed to register power supply\n", __func__);
-			do {
-				power_supply_unregister(&ug31xx_supply[i]);
-			} while ((--i) >= 0);
+			while ((--i) >= 0) {
+				power_supply_unregister(ug31xx_supply[i]);
+			}
 			return ret;
 		}
 	}
@@ -1658,20 +1665,20 @@ int ug31xx_cable_callback(unsigned char usb_cable_state)
 	{
 		if(old_cable_status == UG31XX_AC_ADAPTER_CABLE)
 		{
-			power_supply_changed(&ug31xx_supply[PWR_SUPPLY_AC]);
+			power_supply_changed(ug31xx_supply[PWR_SUPPLY_AC]);
 		}
 		else if(old_cable_status == UG31XX_USB_PC_CABLE)
 		{
-			power_supply_changed(&ug31xx_supply[PWR_SUPPLY_USB]);
+			power_supply_changed(ug31xx_supply[PWR_SUPPLY_USB]);
 		}
 	}
 	else if(cur_cable_status == UG31XX_USB_PC_CABLE)
 	{
-		power_supply_changed(&ug31xx_supply[PWR_SUPPLY_USB]);
+		power_supply_changed(ug31xx_supply[PWR_SUPPLY_USB]);
 	}
 	else if(cur_cable_status == UG31XX_AC_ADAPTER_CABLE)
 	{
-		power_supply_changed(&ug31xx_supply[PWR_SUPPLY_AC]);
+		power_supply_changed(ug31xx_supply[PWR_SUPPLY_AC]);
 	}
 #endif  ///< end of UG31XX_REGISTER_POWERSUPPLY
 	return (0);
@@ -2057,7 +2064,7 @@ static void batt_power_update_work_func(struct work_struct *work)
 		wake_unlock(&ug31_dev->batt_wake_lock);
 	}
 	wake_lock_timeout(&ug31->batt_wake_lock, UG31XX_WAKE_LOCK_TIMEOUT*HZ);
-	power_supply_changed(&ug31xx_supply[PWR_SUPPLY_BATTERY]);
+	power_supply_changed(ug31xx_supply[PWR_SUPPLY_BATTERY]);
 
 	#endif  ///< end of UG31XX_REGISTER_POWERSUPPLY
 
@@ -2100,6 +2107,7 @@ static void stop_charging(void)
     }
 }
 
+#ifdef CONFIG_SWITCH
 static ssize_t batt_switch_name(struct switch_dev *sdev, char *buf)
 {
 	const char* FAIL = "0xFFFF";
@@ -2111,6 +2119,7 @@ static ssize_t batt_switch_name(struct switch_dev *sdev, char *buf)
 
 	return sprintf(buf, "%s-%s\n", ug31_module.get_version(), ug31->daemon_ver);
 }
+#endif
 
 /// =================================================================
 /// Charger control for initial capacity prediction (Stop)
@@ -3637,10 +3646,12 @@ static void batt_probe_work_func(struct work_struct *work)
         }
 // 20141024 Tom -------
 
+#ifndef UG31XX_EARLY_POWER_SUPPLY
 	if(ug31xx_powersupply_init(ug31->client))
 	{
 		goto pwr_supply_fail;
 	}
+#endif
 	ug31xx_drv_status = UG31XX_DRV_INIT_OK;
 
 #ifdef	UPI_CALLBACK_FUNC
@@ -3800,8 +3811,9 @@ static void batt_probe_work_func(struct work_struct *work)
 
 	/* request charger driver to update "power supply changed" */
 	//tan request_power_supply_changed();
-	//power_supply_changed(&ug31xx_supply[PWR_SUPPLY_BATTERY]);//tan#
+	//power_supply_changed(ug31xx_supply[PWR_SUPPLY_BATTERY]);//tan#
 
+#ifdef CONFIG_SWITCH
 	/* register switch device for battery information versions report */
 	batt_dev.name = "battery";
 	batt_dev.print_name = batt_switch_name;
@@ -3809,6 +3821,7 @@ static void batt_probe_work_func(struct work_struct *work)
 		GAUGE_err("%s: fail to register battery switch\n", __func__);
 		goto pwr_supply_fail;
 	}
+#endif
 	ug31xx_config_earlysuspend(ug31);
 
 	schedule_delayed_work(&ug31->batt_info_update_work, 0*HZ);
@@ -3830,7 +3843,9 @@ pwr_supply_fail:
 initial_fail:
 	start_charging();
 	show_abnormal_batt_status_for_retry();
+#ifndef UG31XX_EARLY_POWER_SUPPLY
 	ug31xx_powersupply_init(ug31->client);
+#endif
 	schedule_delayed_work(&ug31->batt_retry_work, UG31XX_RESET_DELAY_TIME*HZ);
 	return;
 }
@@ -3900,6 +3915,10 @@ static int ug31xx_i2c_probe(struct i2c_client *client,
   INIT_DELAYED_WORK(&ug31->stop_charging_work, stop_charging_work_func);
   INIT_DELAYED_WORK(&ug31->curr_check_work, curr_check_work_func);
 
+#ifdef UG31XX_EARLY_POWER_SUPPLY
+	ug31xx_powersupply_init(ug31->client);
+#endif
+
 #ifdef  UG31XX_PROBE_CHARGER_OFF
 
 	probe_with_cable = is_charging();
@@ -3949,7 +3968,7 @@ static int ug31xx_i2c_remove(struct i2c_client *client)
 
 	for (i = 0; i < ARRAY_SIZE(ug31xx_supply); i++)
 	{
-		power_supply_unregister(&ug31xx_supply[i]);
+		power_supply_unregister(ug31xx_supply[i]);
 	}
 
 	#endif  ///< end of UG31XX_REGISTER_POWERSUPPLY
@@ -4000,7 +4019,7 @@ static int ug31xx_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
-static int ug31xx_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
+static int ug31xx_i2c_suspend(struct device *dev)
 {
 	int gg_status;
 
@@ -4055,7 +4074,7 @@ static int ug31xx_i2c_suspend(struct i2c_client *client, pm_message_t mesg)
 	return 0;
 }
 
-static int ug31xx_i2c_resume(struct i2c_client *client)
+static int ug31xx_i2c_resume(struct device *dev)
 {
 	#if !(defined(CONFIG_HAS_EARLYSUSPEND) && defined(UG31XX_EARLY_SUSPEND))
 
@@ -4323,6 +4342,13 @@ MODULE_DEVICE_TABLE(acpi, ug31xx_acpi_match);
 #endif
 //Carlisle add for match via ACPI ---
 
+#ifdef CONFIG_PM
+static const struct dev_pm_ops ug31xx_dev_pm_ops = {
+	.suspend = ug31xx_i2c_suspend,
+	.resume = ug31xx_i2c_resume,
+};
+#endif
+
 static struct i2c_driver ug31xx_i2c_driver = {
 	.driver    = {
 		.name  = UG31XX_DEV_NAME,
@@ -4332,11 +4358,12 @@ static struct i2c_driver ug31xx_i2c_driver = {
 		.acpi_match_table = ACPI_PTR(ug31xx_acpi_match),
 #endif
 //Carlisle add for match via ACPI ---
+#ifdef CONFIG_PM
+		.pm = &ug31xx_dev_pm_ops,
+#endif
 	},
 	.probe     = ug31xx_i2c_probe,
 	.remove    = ug31xx_i2c_remove,
-	.suspend   = ug31xx_i2c_suspend,
-	.resume    = ug31xx_i2c_resume,
 	.shutdown  = ug31xx_i2c_shutdown,
 	.id_table  = ug31xx_i2c_id,
 };
@@ -4463,4 +4490,3 @@ module_param(cc_chg_offset_100, uint, 0644);
 MODULE_PARM_DESC(cc_chg_offset_100, "Set CC mode charging offset below 100%");
 module_param(cali_rsoc_time, int, 0644);
 MODULE_PARM_DESC(cali_rsoc_time, "Set time threshold for calibrating rsoc");
-
