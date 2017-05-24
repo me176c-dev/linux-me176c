@@ -21,6 +21,7 @@
                                     2nd byte: had backup before */
 #define I2C_RETRY_CNT           (20)
 
+#ifdef CONFIG_ASUS_ENGINEER_MODE
 /**
  * ug31xx_restore_config_data - restore config data
  * @name : Power Supply name
@@ -118,6 +119,7 @@ int ug31xx_write_backup_tag(const char *name, u8 *data)
 
     return ret;
 }
+#endif
 
 #ifdef  uG31xx_OS_WINDOWS
 
@@ -476,7 +478,7 @@ void write_file(struct file *fp, _upi_u8_ *data, _upi_u8_ size)
   _upi_u8_ idx;
 
   oldFS = get_fs();
-  set_fs(get_ds());
+  set_fs(KERNEL_DS);
 
   pos = 0;
   idx = 0;
@@ -762,7 +764,7 @@ void read_file(struct file *fp, _upi_u8_ *data, _upi_u8_ size)
   _upi_u8_ idx;
 
   oldFS = get_fs();
-  set_fs(get_ds());
+  set_fs(KERNEL_DS);
 
   pos = 0;
   idx = 0;
@@ -1085,11 +1087,7 @@ _upi_u32_ GetSysTickCount(void)
 
   #else   ///< else of uG31xx_BOOT_LOADER
 
-    struct timeval current_tick;
-
-    do_gettimeofday(&current_tick);
-
-    return current_tick.tv_sec * 1000 + current_tick.tv_usec/1000;
+    return ktime_to_ms(ktime_get_real());
 
   #endif  ///< end of uG31xx_BOOT_LOADER
 }
@@ -1506,4 +1504,3 @@ void SleepMiniSecond(_upi_u32_ msec)
 
   #endif  ///< end of uG31xx_OS_WINDOWS
 }
-
