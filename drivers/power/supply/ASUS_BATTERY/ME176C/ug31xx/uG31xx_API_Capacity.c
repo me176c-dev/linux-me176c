@@ -2188,7 +2188,7 @@ void DumpUpdateTable(CapacityInternalDataType *obj)
 
   /// [AT-PM] : Write data to file ; 03/25/2013
   oldFS = get_fs();
-  set_fs(get_ds());
+  set_fs(KERNEL_DS);
   pos = 0;
   size = vfs_write(fp, (char *)&obj->info->tableUpdateIdx, sizeof(obj->info->tableUpdateIdx), &pos);
   size = vfs_write(fp, (char *)obj->info->encriptTable, sizeof(obj->info->encriptTable), &pos);
