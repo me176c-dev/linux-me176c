@@ -32,6 +32,8 @@
 #define BYT_CRC_HRV		2
 #define CHT_CRC_HRV		3
 
+struct intel_soc_pmic *intel_pmic = NULL;
+
 /* Lookup table for the Panel Enable/Disable line as GPIO signals */
 static struct gpiod_lookup_table panel_gpio_table = {
 	/* Intel GFX is consumer */
@@ -115,6 +117,7 @@ static int intel_soc_pmic_i2c_probe(struct i2c_client *i2c,
 	if (ret)
 		goto err_del_irq_chip;
 
+	intel_pmic = pmic;
 	return 0;
 
 err_del_irq_chip:
@@ -136,6 +139,7 @@ static int intel_soc_pmic_i2c_remove(struct i2c_client *i2c)
 
 	mfd_remove_devices(&i2c->dev);
 
+	intel_pmic = NULL;
 	return 0;
 }
 

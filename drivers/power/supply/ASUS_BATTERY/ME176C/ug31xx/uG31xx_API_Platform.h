@@ -210,6 +210,8 @@ extern _upi_u8_ Ug31DebugEnable;
     #define UG31_LOGD(...)  if(Ug31DebugEnable >= LOG_LEVEL_DEBUG)\
                               printk("<UG31/D>" __VA_ARGS__);
 
+    #define UG31_LOGDD(fmt, ...)  pr_debug(fmt, ##__VA_ARGS__);
+
     extern int ug31_printk(int level, const char *fmt, ...);
     extern int ug31_printk_special(int level, const char *fmt, ...);
 
@@ -242,4 +244,3 @@ extern _upi_u8_ Ug31DebugEnable;
 #endif  ///< end of uG31xx_BOOT_LOADER
 
 #endif  ///< end of uG31xx_OS_WINDOWS
-
