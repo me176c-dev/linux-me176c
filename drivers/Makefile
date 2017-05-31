@@ -58,6 +58,9 @@ obj-y				+= char/
 # iommu/ comes before gpu as gpu are using iommu controllers
 obj-$(CONFIG_IOMMU_SUPPORT)	+= iommu/
 
+# mfd/ comes before gpu/ as i915 depends on the PMIC for backlight control
+obj-y				+= mfd/
+
 # gpu/ comes after char for AGP vs DRM startup and after iommu
 obj-y				+= gpu/
 
@@ -69,7 +72,7 @@ obj-$(CONFIG_FB_INTEL)          += video/fbdev/intelfb/
 
 obj-$(CONFIG_PARPORT)		+= parport/
 obj-$(CONFIG_NVM)		+= lightnvm/
-obj-y				+= base/ block/ misc/ mfd/ nfc/
+obj-y				+= base/ block/ misc/ nfc/
 obj-$(CONFIG_LIBNVDIMM)		+= nvdimm/
 obj-$(CONFIG_DAX)		+= dax/
 obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
