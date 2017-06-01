@@ -1027,6 +1027,19 @@ config INTEL_TELEMETRY
 	  used to get various SoC events and parameters
 	  directly via debugfs files. Various tools may use
 	  this interface for SoC state monitoring.
+
+config INTEL_REBOOT_TARGET
+	bool "Intel Reboot Target"
+	---help---
+	  This driver provides a generic implementation for reboot target setting at
+	  reset time.
+
+config INTEL_REBOOT_TARGET_UEFI
+	tristate "Intel Target Mode UEFI implementation"
+	depends on INTEL_REBOOT_TARGET && EFI && !MID_OSNIB_ILB
+	---help---
+	  Reboot Target UEFI based implementation
+
 endif # X86_PLATFORM_DEVICES
 
 config PMC_ATOM
