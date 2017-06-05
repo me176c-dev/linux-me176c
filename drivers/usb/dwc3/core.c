@@ -594,6 +594,8 @@ static void dwc3_core_exit(struct dwc3 *dwc)
 	phy_power_off(dwc->usb3_generic_phy);
 }
 
+static int dwc3_core_get_phy(struct dwc3 *dwc);
+
 /**
  * dwc3_core_init - Low-level initialization of DWC3 Core
  * @dwc: Pointer to our controller context structure
@@ -644,6 +646,10 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		goto err0;
 
 	ret = dwc3_phy_setup(dwc);
+	if (ret)
+		goto err0;
+
+	ret = dwc3_core_get_phy(dwc);
 	if (ret)
 		goto err0;
 
@@ -1043,10 +1049,6 @@ static int dwc3_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, dwc);
 	dwc3_cache_hwparams(dwc);
-
-	ret = dwc3_core_get_phy(dwc);
-	if (ret)
-		goto err0;
 
 	spin_lock_init(&dwc->lock);
 
