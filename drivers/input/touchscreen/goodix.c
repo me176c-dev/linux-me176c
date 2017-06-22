@@ -30,6 +30,7 @@
 #include <linux/slab.h>
 #include <linux/acpi.h>
 #include <linux/of.h>
+#include <linux/pm_runtime.h>
 #include <asm/unaligned.h>
 
 struct goodix_ts_data;
@@ -740,6 +741,13 @@ static int goodix_configure_dev(struct goodix_ts_data *ts)
 		return error;
 	}
 
+	error = pm_runtime_set_active(&ts->client->dev);
+	if (error)
+		return error;
+
+	pm_runtime_forbid(&ts->client->dev);
+	pm_runtime_enable(&ts->client->dev);
+
 	return 0;
 }
 
@@ -931,7 +939,7 @@ static int __maybe_unused goodix_resume(struct device *dev)
 	return 0;
 }
 
-static SIMPLE_DEV_PM_OPS(goodix_pm_ops, goodix_suspend, goodix_resume);
+static UNIVERSAL_DEV_PM_OPS(goodix_pm_ops, goodix_suspend, goodix_resume, NULL);
 
 static const struct i2c_device_id goodix_ts_id[] = {
 	{ "GDIX1001:00", 0 },
