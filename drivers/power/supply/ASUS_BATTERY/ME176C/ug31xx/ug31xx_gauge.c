@@ -43,6 +43,8 @@
 #include <linux/acpi.h>
 //Carlisle add for ACPI match --
 
+#include <linux/pm_runtime.h>
+
 //#define	UPI_CALLBACK_FUNC	            ///< [AT-PM] : Used for removing callback function ; 04/15/2013
 #define	UG31XX_DYNAMIC_POLLING	      ///< [AT-PM] : Used for dynamic polling time ; 04/30/2013
 //#define UG31XX_WAIT_CHARGER_FC        ///< [AT-PM] : Used for full charge status decided by charger ; 07/25/2013
@@ -52,7 +54,7 @@
 #define UG31XX_SHOW_EXT_TEMP    ///< [FC] : Set temperature reference by external ; 09/30/2013
 #define UG31XX_MISC_DEV
 #define UG31XX_PROBE_CHARGER_OFF      ///< [AT-PM] : Used for charger off at probe ; 12/06/2013
-//#define UG31XX_EARLY_SUSPEND			///< [AT-PM] : Used for early suspend instead of suspend ; 12/07/2013
+#define UG31XX_EARLY_SUSPEND			///< [AT-PM] : Used for early suspend instead of suspend ; 12/07/2013
 #define UG31XX_KOBJECT      ///< [AT-PM] : Used for register kobject ; 12/23/2013
 #define UG31XX_USER_SPACE_ALGORITHM     ///< [AT-PM] : Used for user space algorithm operation ; 12/24/2013
 #define UG31XX_USER_SPACE_BACKUP        ///< [AT-PM] : Used for user space backup operation ; 12/30/2013
@@ -92,9 +94,6 @@ struct switch_dev batt_dev;
 
 
 struct ug31xx_gauge {
-#if defined(CONFIG_HAS_EARLYSUSPEND) && defined(UG31XX_EARLY_SUSPEND)
-	struct early_suspend es;
-#endif	///< end of defined(CONFIG_HAS_EARLYSUSPEND) && defined(UG31XX_EARLY_SUSPEND)
 	struct i2c_client       *client;
 	struct device           *dev;
 	struct delayed_work     batt_info_update_work;
@@ -3005,16 +3004,16 @@ static void calibrate_rsoc(void)
   calibrate_rsoc_request = false;
 }
 
-#if defined(CONFIG_HAS_EARLYSUSPEND) && defined(UG31XX_EARLY_SUSPEND)
+#if defined(UG31XX_EARLY_SUSPEND)
 
-static void ug31xx_early_suspend(struct early_suspend *e)
+static int ug31xx_early_suspend(struct device *dev)
 {
-	struct ug31xx_gauge *ug31_dev = container_of(e, struct ug31xx_gauge, es);
+	struct ug31xx_gauge *ug31_dev = ug31;
 
 	if(ug31xx_drv_status == UG31XX_DRV_NOT_READY)
 	{
 		GAUGE_err("[%s] Gauge driver not init finish\n", __func__);
-		return;
+		return -EAGAIN;
 	}
 
 	op_actions = UG31XX_OP_EARLY_SUSPEND;
@@ -3050,17 +3049,18 @@ static void ug31xx_early_suspend(struct early_suspend *e)
 
 	delta_q_in_suspend = 0;
 	GAUGE_info("[%s] Driver early suspend.\n", __func__);
+	return 0;
 }
 
-static void ug31xx_late_resume(struct early_suspend *e)
+static int ug31xx_late_resume(struct device *dev)
 {
-	struct ug31xx_gauge *ug31_dev = container_of(e, struct ug31xx_gauge, es);
+	struct ug31xx_gauge *ug31_dev = ug31;
 	bool charger_dc_in_after_resume;
 
 	if(ug31xx_drv_status == UG31XX_DRV_NOT_READY)
 	{
 		GAUGE_err("[%s] Gauge driver not init finish\n", __func__);
-		return;
+		return -EAGAIN;
 	}
 
 	op_actions = UG31XX_OP_LATE_RESUME;
@@ -3087,14 +3087,14 @@ static void ug31xx_late_resume(struct early_suspend *e)
 	force_power_supply_change = true;
 	in_early_suspend = false;
 	GAUGE_info("[%s] Gauge late resumed.\n", __func__);
+	return 0;
 }
 
 static void ug31xx_config_earlysuspend(struct ug31xx_gauge *chip)
 {
-	chip->es.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN - 2;
-	chip->es.suspend = ug31xx_early_suspend;
-	chip->es.resume = ug31xx_late_resume;
-	register_early_suspend(&chip->es);
+	pm_runtime_set_active(chip->dev);
+	pm_runtime_forbid(chip->dev);
+	pm_runtime_enable(chip->dev);
 }
 
 #else	///< else of defined(CONFIG_HAS_EARLYSUSPEND) && defined(UG31XX_EARLY_SUSPEND)
@@ -4337,6 +4337,7 @@ MODULE_DEVICE_TABLE(acpi, ug31xx_acpi_match);
 static const struct dev_pm_ops ug31xx_dev_pm_ops = {
 	.suspend = ug31xx_i2c_suspend,
 	.resume = ug31xx_i2c_resume,
+	SET_RUNTIME_PM_OPS(ug31xx_early_suspend, ug31xx_late_resume, NULL)
 };
 #endif
 
