@@ -27,6 +27,10 @@ config SND_SST_IPC_ACPI
 	select SND_SOC_INTEL_SST
 	select IOSF_MBI
 
+config SND_SST_IPC_ACPI_FORCE_BYTCR
+	bool "Force use of BYTCR BIOS resources"
+	depends on SND_SOC_INTEL_SST_ACPI
+
 config SND_SOC_INTEL_SST
 	tristate
 	select SND_SOC_INTEL_SST_ACPI if ACPI

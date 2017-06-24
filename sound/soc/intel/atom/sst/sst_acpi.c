@@ -244,6 +244,9 @@ static int is_byt_cr(struct device *dev, bool *bytcr)
 {
 	int status = 0;
 
+#ifdef CONFIG_SND_SST_IPC_ACPI_FORCE_BYTCR
+	*bytcr = true;
+#else
 	if (IS_ENABLED(CONFIG_IOSF_MBI)) {
 		static const struct x86_cpu_id cpu_ids[] = {
 			{ X86_VENDOR_INTEL, 6, 55 }, /* Valleyview, Bay Trail */
@@ -275,6 +278,8 @@ static int is_byt_cr(struct device *dev, bool *bytcr)
 	} else {
 		dev_info(dev, "IOSF_MBI not enabled, no BYT-CR detection\n");
 	}
+#endif
+
 	return status;
 }
 
