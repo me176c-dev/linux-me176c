@@ -259,6 +259,8 @@ static int is_byt_cr(struct device *dev, bool *bytcr)
 {
 	int status = 0;
 
+	*bytcr = true;
+#if 0
 	if (IS_ENABLED(CONFIG_IOSF_MBI)) {
 		u32 bios_status;
 
@@ -286,6 +288,7 @@ static int is_byt_cr(struct device *dev, bool *bytcr)
 	} else {
 		dev_info(dev, "IOSF_MBI not enabled, no BYT-CR detection\n");
 	}
+#endif
 	return status;
 }
 
