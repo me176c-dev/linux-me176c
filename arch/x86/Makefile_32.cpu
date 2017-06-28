@@ -34,6 +34,7 @@ cflags-$(CONFIG_MVIAC7)		+= -march=i686
 cflags-$(CONFIG_MCORE2)		+= -march=i686 $(call tune,core2)
 cflags-$(CONFIG_MATOM)		+= $(call cc-option,-march=atom,$(call cc-option,-march=core2,-march=i686)) \
 	$(call cc-option,-mtune=atom,$(call cc-option,-mtune=generic))
+cflags-$(CONFIG_MSILVERMONT)	+= -march=silvermont -mtune=silvermont
 
 # AMD Elan support
 cflags-$(CONFIG_MELAN)		+= -march=i486
