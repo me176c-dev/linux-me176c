@@ -53,8 +53,27 @@ enum {
 #define BYT_RT5640_MCLK_EN	BIT(22)
 #define BYT_RT5640_MCLK_25MHZ	BIT(23)
 
+static struct snd_soc_jack_pin byt_rt5640_jack_pins[] = {
+	{
+		.pin	= "Headphone",
+		.mask	= SND_JACK_HEADPHONE,
+	},
+	/*{
+		.pin	= "Headset Mic",
+		.mask	= SND_JACK_MICROPHONE,
+	},*/
+};
+
+static struct snd_soc_jack_gpio byt_rt5640_jack_gpio = {
+	.name = "byt-soc-gpio",
+	.report = SND_JACK_HEADPHONE,
+	.invert = 1,
+	.debounce_time = 500,
+};
+
 struct byt_rt5640_private {
 	struct clk *mclk;
+	struct snd_soc_jack jack;
 };
 
 static unsigned long byt_rt5640_quirk = BYT_RT5640_MCLK_EN;
@@ -525,8 +544,24 @@ static int byt_rt5640_init(struct snd_soc_pcm_runtime *runtime)
 		else
 			ret = clk_set_rate(priv->mclk, 19200000);
 
-		if (ret)
+		if (ret) {
 			dev_err(card->dev, "unable to set MCLK rate\n");
+			return ret;
+		}
+	}
+
+	/* Enable jack detection */
+	ret = snd_soc_card_jack_new(card, "Headset", SND_JACK_HEADPHONE, &priv->jack,
+			byt_rt5640_jack_pins, ARRAY_SIZE(byt_rt5640_jack_pins));
+	if (ret) {
+		dev_err(card->dev, "Failed to register audio jack: %d\n", ret);
+		return ret;
+	}
+
+	ret = snd_soc_jack_add_gpiods(card->dev, &priv->jack, 1, &byt_rt5640_jack_gpio);
+	if (ret) {
+		dev_err(card->dev, "Failed to add audio jack GPIOs: %d (%s)\n", ret, dev_name(card->dev));
+		return ret;
 	}
 
 	return ret;
@@ -814,12 +849,23 @@ static int snd_byt_rt5640_mc_probe(struct platform_device *pdev)
 	return ret_val;
 }
 
+static int snd_byt_rt5640_mc_remove(struct platform_device *pdev)
+{
+	struct snd_soc_card *card = platform_get_drvdata(pdev);
+	struct byt_rt5640_private *priv = snd_soc_card_get_drvdata(card);
+
+	snd_soc_jack_free_gpios(&priv->jack, 1, &byt_rt5640_jack_gpio);
+
+	return 0;
+}
+
 static struct platform_driver snd_byt_rt5640_mc_driver = {
 	.driver = {
 		.name = "bytcr_rt5640",
 		.pm = &snd_soc_pm_ops,
 	},
 	.probe = snd_byt_rt5640_mc_probe,
+	.remove = snd_byt_rt5640_mc_remove,
 };
 
 module_platform_driver(snd_byt_rt5640_mc_driver);
