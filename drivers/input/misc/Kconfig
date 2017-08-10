@@ -83,6 +83,16 @@ config INPUT_ARIZONA_HAPTICS
 	  To compile this driver as a module, choose M here: the
 	  module will be called arizona-haptics.
 
+config INPUT_ASUS_LID
+	tristate "ASUS Lid Cover support"
+	depends on KEYBOARD_GPIO
+	help
+	  Say Y to enable support for the Asus Lid Cover used in the
+	  ASUS MeMO Pad 7 (ME176C) and other ASUS tablets.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called asus-lid.
+
 config INPUT_ATMEL_CAPTOUCH
 	tristate "Atmel Capacitive Touch Button Driver"
 	depends on OF || COMPILE_TEST
