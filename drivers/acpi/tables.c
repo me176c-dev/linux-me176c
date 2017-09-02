@@ -713,6 +713,70 @@ acpi_os_physical_table_override(struct acpi_table_header *existing_table,
 					  table_length);
 }
 
+#ifdef CONFIG_ACPI_CUSTOM_DSDT
+                                        /*OpRegion*/       /*GNVS*/       /*SystemMemory*/
+static const char gnvs_region_prefix[] = {0x5b,0x80, 0x47,0x4e,0x56,0x53, 0x00};
+
+#define GNVS_REGION_MIN_LENGTH	(sizeof(gnvs_region_prefix) + 1 + sizeof(__le32))
+#define AML_DWORD_PREFIX		0x0c
+
+static __le32* acpi_os_dsdt_find_gnvs_region_offset(struct acpi_table_header *header)
+{
+	/* Find the GNVS OperationRegion definition in the ACPI table */
+	char *gnvs = strnstr((const char*) header, gnvs_region_prefix, header->length);
+	if (!gnvs) {
+		return NULL;
+	}
+
+	/* Make sure we don't access memory out-of-bounds */
+	if (((const void*) header + header->length - (const void*) gnvs) < GNVS_REGION_MIN_LENGTH) {
+		return NULL;
+	}
+
+	/* Skip the search prefix */
+	gnvs += ARRAY_SIZE(gnvs_region_prefix);
+
+	/* Offset should have a DWordPrefix (0x0c) */
+	if (*gnvs != AML_DWORD_PREFIX) {
+		pr_err("Invalid GNVS address prefix: %x", *gnvs);
+		return NULL;
+	}
+
+	/* Return pointer to the region offset */
+	return (__le32*) (gnvs + 1);
+}
+
+static void acpi_os_prepare_dsdt_table(struct acpi_table_header *existing_table,
+		       struct acpi_table_header **new_table)
+{
+	__le32 *gnvs_offset_original;
+	__le32 *gnvs_offset_new;
+
+	*new_table = (struct acpi_table_header *)AmlCode;
+
+	/* Find real GNVS region offset */
+	gnvs_offset_original = acpi_os_dsdt_find_gnvs_region_offset(existing_table);
+	if (!gnvs_offset_original) {
+		pr_warn("GNVS region offset not found in original table");
+		return;
+	}
+
+	/* Find dummy GNVS region offset */
+	gnvs_offset_new = acpi_os_dsdt_find_gnvs_region_offset(*new_table);
+	if (!gnvs_offset_new) {
+		pr_warn("GNVS region offset not found in dummy table");
+		return;
+	}
+
+	/* Update offset if necessary */
+	if (*gnvs_offset_original != *gnvs_offset_new) {
+		pr_info("GNVS region offset mismatch, updating 0x%x -> 0x%x",
+			le32_to_cpu(*gnvs_offset_new), le32_to_cpu(*gnvs_offset_original));
+		*gnvs_offset_new = *gnvs_offset_original;
+	}
+}
+#endif
+
 acpi_status
 acpi_os_table_override(struct acpi_table_header *existing_table,
 		       struct acpi_table_header **new_table)
@@ -724,7 +788,7 @@ acpi_os_table_override(struct acpi_table_header *existing_table,
 
 #ifdef CONFIG_ACPI_CUSTOM_DSDT
 	if (strncmp(existing_table->signature, "DSDT", 4) == 0)
-		*new_table = (struct acpi_table_header *)AmlCode;
+		acpi_os_prepare_dsdt_table(existing_table, new_table);
 #endif
 	if (*new_table != NULL)
 		acpi_table_taint(existing_table);
