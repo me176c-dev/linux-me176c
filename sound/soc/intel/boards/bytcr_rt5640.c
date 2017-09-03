@@ -679,7 +679,7 @@ static struct snd_soc_dai_link byt_rt5640_dais[] = {
 };
 
 /* SoC card */
-static struct snd_soc_card byt_rt5640_card = {
+struct snd_soc_card byt_rt5640_card = {
 	.name = "bytcr-rt5640",
 	.owner = THIS_MODULE,
 	.dai_link = byt_rt5640_dais,
@@ -690,6 +690,7 @@ static struct snd_soc_card byt_rt5640_card = {
 	.num_dapm_routes = ARRAY_SIZE(byt_rt5640_audio_map),
 	.fully_routed = true,
 };
+EXPORT_SYMBOL(byt_rt5640_card);
 
 static char byt_rt5640_codec_name[16]; /* i2c-<HID>:00 with HID being 8 chars */
 static char byt_rt5640_codec_aif_name[12]; /*  = "rt5640-aif[1|2]" */
