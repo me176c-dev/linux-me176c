@@ -158,6 +158,10 @@ config SND_SOC_INTEL_BYTCR_RT5640_MACH
           Say Y if you have such a device.
           If unsure select "N".
 
+config SND_SOC_INTEL_BYTCR_RT5640_MACH_JACK
+	tristate "ASoC Audio jack driver for Intel Baytrail and Baytrail-CR with RT5640 codec"
+	depends on SND_SOC_INTEL_BYTCR_RT5640_MACH
+
 config SND_SOC_INTEL_BYTCR_RT5651_MACH
         tristate "ASoC Audio driver for Intel Baytrail and Baytrail-CR with RT5651 codec"
 	depends on X86 && I2C && ACPI
