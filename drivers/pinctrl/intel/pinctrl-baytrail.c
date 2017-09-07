@@ -1009,7 +1009,6 @@ static int byt_gpio_set_direction(struct pinctrl_dev *pctl_dev,
 {
 	struct byt_gpio *vg = pinctrl_dev_get_drvdata(pctl_dev);
 	void __iomem *val_reg = byt_gpio_reg(vg, offset, BYT_VAL_REG);
-	void __iomem *conf_reg = byt_gpio_reg(vg, offset, BYT_CONF0_REG);
 	unsigned long flags;
 	u32 value;
 
@@ -1019,15 +1018,6 @@ static int byt_gpio_set_direction(struct pinctrl_dev *pctl_dev,
 	value &= ~BYT_DIR_MASK;
 	if (input)
 		value |= BYT_OUTPUT_EN;
-	else
-		/*
-		 * Before making any direction modifications, do a check if gpio
-		 * is set for direct IRQ.  On baytrail, setting GPIO to output
-		 * does not make sense, so let's at least warn the caller before
-		 * they shoot themselves in the foot.
-		 */
-		WARN(readl(conf_reg) & BYT_DIRECT_IRQ_EN,
-		     "Potential Error: Setting GPIO with direct_irq_en to output");
 	writel(value, val_reg);
 
 	raw_spin_unlock_irqrestore(&vg->lock, flags);
@@ -1567,9 +1557,6 @@ static int byt_irq_type(struct irq_data *d, unsigned int type)
 
 	raw_spin_lock_irqsave(&vg->lock, flags);
 	value = readl(reg);
-
-	WARN(value & BYT_DIRECT_IRQ_EN,
-	     "Bad pad config for io mode, force direct_irq_en bit clearing");
 
 	/* For level trigges the BYT_TRIG_POS and BYT_TRIG_NEG bits
 	 * are used to indicate high and low level triggering
