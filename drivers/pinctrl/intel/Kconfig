@@ -17,6 +17,11 @@ config PINCTRL_BAYTRAIL
 
 	  Requires ACPI device enumeration code to set up a platform device.
 
+if PINCTRL_BAYTRAIL
+config PINCTRL_BAYTRAIL_BROKEN_CONFIG
+	bool "Disable warnings about broken pad configs"
+endif # PINCTRL_BAYTRAIL
+
 config PINCTRL_CHERRYVIEW
 	tristate "Intel Cherryview/Braswell pinctrl and GPIO driver"
 	depends on ACPI

@@ -981,7 +981,11 @@ static int byt_gpio_request_enable(struct pinctrl_dev *pctl_dev,
 	 */
 	value = readl(reg) & BYT_PIN_MUX;
 	gpio_mux = byt_get_gpio_mux(vg, offset);
+#ifndef CONFIG_PINCTRL_BAYTRAIL_BROKEN_CONFIG
 	if (WARN_ON(gpio_mux != value)) {
+#else
+	if (gpio_mux != value) {
+#endif
 		value = readl(reg) & ~BYT_PIN_MUX;
 		value |= gpio_mux;
 		writel(value, reg);
@@ -1024,6 +1028,7 @@ static int byt_gpio_set_direction(struct pinctrl_dev *pctl_dev,
 	value &= ~BYT_DIR_MASK;
 	if (input)
 		value |= BYT_OUTPUT_EN;
+#ifndef CONFIG_PINCTRL_BAYTRAIL_BROKEN_CONFIG
 	else
 		/*
 		 * Before making any direction modifications, do a check if gpio
@@ -1033,6 +1038,7 @@ static int byt_gpio_set_direction(struct pinctrl_dev *pctl_dev,
 		 */
 		WARN(readl(conf_reg) & BYT_DIRECT_IRQ_EN,
 		     "Potential Error: Setting GPIO with direct_irq_en to output");
+#endif
 	writel(value, val_reg);
 
 	raw_spin_unlock_irqrestore(&vg->lock, flags);
@@ -1571,8 +1577,10 @@ static int byt_irq_type(struct irq_data *d, unsigned int type)
 	raw_spin_lock_irqsave(&vg->lock, flags);
 	value = readl(reg);
 
+#ifndef CONFIG_PINCTRL_BAYTRAIL_BROKEN_CONFIG
 	WARN(value & BYT_DIRECT_IRQ_EN,
 	     "Bad pad config for io mode, force direct_irq_en bit clearing");
+#endif
 
 	/* For level trigges the BYT_TRIG_POS and BYT_TRIG_NEG bits
 	 * are used to indicate high and low level triggering
