@@ -184,11 +184,13 @@ static int atomisp_css2_dbg_print(const char *fmt, va_list args)
 	return 0;
 }
 
+#ifdef CONFIG_VIDEO_ATOMISP_TRACE_PRINTK
 static int atomisp_css2_dbg_ftrace_print(const char *fmt, va_list args)
 {
 	ftrace_vprintk(fmt, args);
 	return 0;
 }
+#endif
 
 static int atomisp_css2_err_print(const char *fmt, va_list args)
 {
@@ -894,9 +896,11 @@ static inline int __set_css_print_env(struct atomisp_device *isp, int opt)
 
 	if (0 == opt)
 		isp->css_env.isp_css_env.print_env.debug_print = NULL;
+#ifdef CONFIG_VIDEO_ATOMISP_TRACE_PRINTK
 	else if (1 == opt)
 		isp->css_env.isp_css_env.print_env.debug_print =
 			atomisp_css2_dbg_ftrace_print;
+#endif
 	else if (2 == opt)
 		isp->css_env.isp_css_env.print_env.debug_print =
 			atomisp_css2_dbg_print;
