@@ -701,7 +701,12 @@ ia_css_ptr hmm_host_vaddr_to_hrt_vaddr(const void *ptr)
 
 void hmm_show_mem_stat(const char *func, const int line)
 {
-	trace_printk("tol_cnt=%d usr_size=%d res_size=%d res_cnt=%d sys_size=%d  dyc_thr=%d dyc_size=%d.\n",
+#ifdef CONFIG_VIDEO_ATOMISP_TRACE_PRINTK
+	trace_printk(
+#else
+	dev_dbg(atomisp_dev,
+#endif
+		"tol_cnt=%d usr_size=%d res_size=%d res_cnt=%d sys_size=%d  dyc_thr=%d dyc_size=%d.\n",
 		     hmm_mem_stat.tol_cnt,
 		     hmm_mem_stat.usr_size, hmm_mem_stat.res_size,
 		     hmm_mem_stat.res_cnt, hmm_mem_stat.sys_size,

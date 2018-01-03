@@ -11,3 +11,8 @@ config VIDEO_ATOMISP
           camera imaging subsystem.
           To compile this driver as a module, choose M here: the
           module will be called atomisp
+
+if VIDEO_ATOMISP
+config VIDEO_ATOMISP_TRACE_PRINTK
+       bool "Use trace_printk() for debugging"
+endif # VIDEO_ATOMISP
