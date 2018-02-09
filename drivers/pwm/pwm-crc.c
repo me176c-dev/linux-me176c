@@ -132,9 +132,18 @@ static int crystalcove_pwm_remove(struct platform_device *pdev)
 	return pwmchip_remove(&pwm->chip);
 }
 
+static void crystalcove_pwm_shutdown(struct platform_device *pdev)
+{
+	struct crystalcove_pwm *pwm = platform_get_drvdata(pdev);
+
+	/* Turn off backlight */
+	regmap_write(pwm->regmap, BACKLIGHT_EN, 0);
+}
+
 static struct platform_driver crystalcove_pwm_driver = {
 	.probe = crystalcove_pwm_probe,
 	.remove = crystalcove_pwm_remove,
+	.shutdown = crystalcove_pwm_shutdown,
 	.driver = {
 		.name = "crystal_cove_pwm",
 	},
