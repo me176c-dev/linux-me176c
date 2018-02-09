@@ -44,6 +44,7 @@
 	func(int, disable_power_well); \
 	func(int, enable_ips); \
 	func(int, invert_brightness); \
+	func(int, pwm_max_brightness); \
 	func(int, enable_guc_loading); \
 	func(int, enable_guc_submission); \
 	func(int, guc_log_level); \

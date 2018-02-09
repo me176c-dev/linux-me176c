@@ -49,6 +49,7 @@ struct i915_params i915 __read_mostly = {
 	.reset = 2,
 	.error_capture = true,
 	.invert_brightness = 0,
+	.pwm_max_brightness = 100,
 	.disable_display = 0,
 	.enable_cmd_parser = true,
 	.use_mmio_flip = 0,
@@ -190,6 +191,9 @@ MODULE_PARM_DESC(invert_brightness,
 	"report PCI device ID, subsystem vendor and subsystem device ID "
 	"to dri-devel@lists.freedesktop.org, if your machine needs it. "
 	"It will then be included in an upcoming module version.");
+
+module_param_named(pwm_max_brightness, i915.pwm_max_brightness, int, 0600);
+MODULE_PARM_DESC(pwm_max_brightness, "Maximum brightness for PWM regulator (default: 100)");
 
 module_param_named(disable_display, i915.disable_display, bool, 0400);
 MODULE_PARM_DESC(disable_display, "Disable display (default: false)");
