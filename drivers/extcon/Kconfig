@@ -37,6 +37,13 @@ config EXTCON_AXP288
 	  Say Y here to enable support for USB peripheral detection
 	  and USB MUX switching by X-Power AXP288 PMIC.
 
+config EXTCON_CRC_PWRSRC
+	tristate "Intel Baytrail CrystalCove Power Source extcon driver"
+	depends on INTEL_SOC_PMIC
+	help
+	  Say Y here to enable extcon support for power source detection
+	  on the Intel Baytrail CrystalCove PMIC.
+
 config EXTCON_FSA9480
 	tristate "FSA9480 EXTCON Support"
 	depends on INPUT && I2C
