@@ -1967,6 +1967,10 @@ err0:
 
 static void __dwc3_gadget_stop(struct dwc3 *dwc)
 {
+	dwc->gadget.speed = USB_SPEED_UNKNOWN;
+	dwc->setup_packet_pending = false;
+	dwc->connected = false;
+
 	dwc3_gadget_disable_irq(dwc);
 	__dwc3_gadget_ep_disable(dwc->eps[0]);
 	__dwc3_gadget_ep_disable(dwc->eps[1]);
