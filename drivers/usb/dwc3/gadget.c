@@ -1952,6 +1952,8 @@ static int dwc3_gadget_start(struct usb_gadget *g,
 
 	if (pm_runtime_active(dwc->dev))
 		__dwc3_gadget_start(dwc);
+	else
+		pm_request_resume(dwc->dev);
 
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
