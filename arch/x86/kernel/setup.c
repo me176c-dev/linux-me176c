@@ -805,6 +805,8 @@ dump_kernel_offset(struct notifier_block *self, unsigned long v, void *p)
 	return 0;
 }
 
+extern void me176c_ramoops_reserve(void);
+
 /*
  * Determine if we were loaded by an EFI loader.  If so, then we have also been
  * passed the efi memmap, systab, etc., so we should use these data structures
@@ -1254,6 +1256,8 @@ void __init setup_arch(char **cmdline_p)
 	e820__register_nosave_regions(max_pfn);
 
 	x86_init.resources.reserve_resources();
+
+	me176c_ramoops_reserve();
 
 	e820__setup_pci_gap();
 
