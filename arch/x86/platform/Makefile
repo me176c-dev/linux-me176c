@@ -9,6 +9,7 @@ obj-y	+= iris/
 obj-y	+= intel/
 obj-y	+= intel-mid/
 obj-y	+= intel-quark/
+obj-y	+= me176c/
 obj-y	+= olpc/
 obj-y	+= scx200/
 obj-y	+= sfi/
