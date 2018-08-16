@@ -1139,6 +1139,15 @@ config SILEAD_DMI
 	  with the OS-image for the device. This option supplies the missing
 	  information. Enable this for x86 tablets with Silead touchscreens.
 
+config ATOMISP_DUMMY
+	tristate "Intel Atom Image Signal Processor Dummy Driver"
+	depends on PCI
+	select IOSF_MBI
+	---help---
+	  A dummy driver to power off the Intel Atom Image Signal Processor.
+	  Without a driver, the device is never fully powered down, preventing
+	  the low power S0ix states.
+
 endif # X86_PLATFORM_DEVICES
 
 config PMC_ATOM
