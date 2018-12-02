@@ -1,0 +1,7 @@
+
+config VIDEO_HM2056
+	tristate "hm2056 sensor support"
+	depends on VIDEO_V4L2 && I2C
+	---help---
+	  This is a V4L2 camera driver for the OmniVision HM2056 sensor
+

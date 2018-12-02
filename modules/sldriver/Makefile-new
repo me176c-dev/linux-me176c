@@ -1,0 +1,5 @@
+obj-m := vidt_driver.o
+vidt_driver-objs := hip.o vmm_hsym.o kern_ta.o vidt.o isr64.o
+ldflags-y += -T$(PWD)/PRIVATE/sl_driver/elf_i386.lds
+ccflags-y += -I$(PWD)/PRIVATE/sldriver/
+ccflags-y += -fno-pic

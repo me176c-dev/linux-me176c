@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ ! -c /dev/ioaccess ] ; then
+	exec /sbin/modprobe ioaccess >/dev/null 2>&1
+fi
+

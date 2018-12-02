@@ -1,0 +1,6 @@
+
+config I2C_SEQOPS
+	def_bool y
+	depends on I2C
+	---help---
+	  This lib will load the I2C sequence operations from firmware binary file and provide a convenient way to use them.

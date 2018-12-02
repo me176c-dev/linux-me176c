@@ -1,0 +1,7 @@
+
+config VIDEO_GC2155_RAW
+	tristate "gc2155 sensor support"
+	depends on VIDEO_V4L2 && I2C
+	---help---
+	  This is a V4L2 camera driver for the OmniVision GC2155 sensor
+

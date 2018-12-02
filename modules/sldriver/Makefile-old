@@ -1,0 +1,34 @@
+LDFLAGS := -T $(PWD)/elf_i386.lds
+EXTRA_CFLAGS :=-fno-pic
+TARGET_MODULE += vidt_driver
+
+
+#KERNELDIR ?= $(ANDROID_LINUX_PATH)
+#PWD := $(shell pwd)
+
+ifeq ($(ARCH) , x86_64)
+#$(TARGET_MODULE)-objs += ./hip.o ./vmm_hsym.o kern_ta.o vidt.o vidt_sign.o isr64.o
+$(TARGET_MODULE)-objs += ./hip.o ./vmm_hsym.o kern_ta.o vidt.o isr64.o
+#CROSS_COMPILE=$(ANDROID_LINUX_PATH)/../prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.7/x86_64-linux-android/bin/
+endif
+
+ifeq ($(ARCH) , i386)
+$(TARGET_MODULE)-objs += ./hip.o ./vmm_hsym.o kern_ta.o vidt.o isr32.o
+#CROSS_COMPILE=$(ANDROID_LINUX_PATH)/../prebuilts/gcc/linux-x86/x86/i686-linux-android-4.6/bin/i686-linux-android-
+endif
+
+obj-m += $(TARGET_MODULE).o
+
+#MODCFLAGS:= -S -save-temps
+#CFLAGS_isr64.o:= -S
+
+
+#ANDROID_PRODUCT_OUT=$(ANDROID_LINUX_PATH)/../out/target/product/$(HARDWARE)
+
+
+default:
+	$(MAKE) -C $(KERNEL_SRC_DIR) M=$(PWD)  modules PWD=$(PWD)
+clean:
+	#$(MAKE) -C $(KERNELDIR) M=$(PWD) clean
+	@rm -f *.o *.ko
+	$(MAKE) -C $(ANDROID_PRODUCT_OUT) M=$(PWD) clean
