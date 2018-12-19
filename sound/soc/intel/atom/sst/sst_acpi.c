@@ -339,6 +339,16 @@ static int sst_acpi_probe(struct platform_device *pdev)
 
 		/* override resource info */
 		byt_rvp_platform_data.res_info = &bytcr_res_info;
+	} else if (platform_get_resource(pdev, IORESOURCE_IRQ, 5) == NULL) {
+		/*
+		 * Some devices detected as BYT-T have only a single IRQ listed.
+		 * In this case, platform_get_irq with index 5 will return -ENXIO.
+		 * Fall back to the BYT-CR resource info to use the correct IRQ.
+		 */
+		dev_info(dev, "Falling back to Baytrail-CR platform\n");
+
+		/* override resource info */
+		byt_rvp_platform_data.res_info = &bytcr_res_info;
 	}
 
 	plat_dev = platform_device_register_data(dev, pdata->platform, -1,
