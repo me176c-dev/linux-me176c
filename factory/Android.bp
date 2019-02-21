@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: MIT
+// Copyright (C) 2019 lambdadroid
+
+cc_library_static {
+    name: "libme176c-factory",
+    vendor: true,
+    srcs: ["me176c-factory.c"],
+    export_include_dirs: ["."],
+}
