@@ -6,7 +6,9 @@ Description=Set Bluetooth MAC Address (%I)
 Requires=me176c-factory.service
 After=me176c-factory.service
 
+ConditionPathExists=@BINARY_DIRECTORY@/btmgmt
+
 [Service]
 Type=oneshot
 EnvironmentFile=@RUNTIME_DIRECTORY@/environment
-ExecStart=/usr/bin/btmgmt -i %i public-addr $BDADDR
+ExecStart=@BINARY_DIRECTORY@/btmgmt -i %i public-addr $BDADDR

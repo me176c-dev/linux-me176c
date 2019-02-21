@@ -9,4 +9,4 @@ After=me176c-factory.service
 [Service]
 Type=oneshot
 EnvironmentFile=@RUNTIME_DIRECTORY@/environment
-ExecStart=/usr/bin/ip link set dev %i address $WIFIADDR
+ExecStart=@BINARY_DIRECTORY@/ip link set dev %i address $WIFIADDR

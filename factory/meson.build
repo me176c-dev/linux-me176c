@@ -24,6 +24,7 @@ executable('me176c-factory',
 
 conf = configuration_data()
 conf.set('BLOCK_DEVICE', get_option('blockdevice'))
+conf.set('BINARY_DIRECTORY', join_paths(get_option('prefix'), get_option('bindir')))
 conf.set('LIBRARY_DIRECTORY', join_paths(get_option('prefix'), me176c_libdir))
 conf.set('RUNTIME_DIRECTORY', me176c_rundir)
 
