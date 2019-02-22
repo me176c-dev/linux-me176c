@@ -3,7 +3,7 @@
 # me176c-factory
 A simple library, and optionally service to load the factory information
 (serial number, BT/WiFi mac address) from the `factory` partition on the
-ASUS MeMO Pad 7 (ME176C).
+ASUS MeMO Pad 7 (ME176C[X]).
 
 ## Library
 `me176c-factory.c/h` provides methods to load the factory information.
@@ -40,5 +40,8 @@ to automatically set the WiFi/Bluetooth MAC address on boot.
 
 ### OpenRC
 TODO
+
+## Packaging
+- **Arch Linux:** `me176c-factory` AUR package
 
 [Meson]: http://mesonbuild.com

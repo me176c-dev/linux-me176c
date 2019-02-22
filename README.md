@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 OR GFDL-1.3-or-later -->
 
-# Linux on ASUS MeMO Pad 7 (ME176C/X)
+# Linux on ASUS MeMO Pad 7 (ME176C[X])
 This repository contains the source code for the Linux kernel fork for the ASUS MeMO Pad 7 (ME176C/X).  
 This README contains instructions and (random) notes for using Linux on this device.
 
@@ -12,7 +12,7 @@ This README contains instructions and (random) notes for using Linux on this dev
   - [Linux 4.14](https://github.com/me176c-dev/linux-me176c/tree/4.14): `4.14`
   - [LineageOS 14.1 (Linux 4.14)](https://github.com/me176c-dev/linux-me176c/tree/cm-14.1): `cm-14.1`
 
-### (Optional) Dependencies (Proprietary)
+### (Optional) Dependencies
 - **[me176c-acpi]:** For full functionality (e.g. touchscreen, Bluetooth, ...)
 - **Firmware:**
   - [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/)
@@ -35,6 +35,11 @@ This README contains instructions and (random) notes for using Linux on this dev
   - Example package: [Arch Linux `intel-ucode-byt-t-c0` package](https://github.com/me176c-dev/archlinux-me176c/blob/master/intel-ucode-byt-t-c0/PKGBUILD)
 
 ## (Random) Notes
+### WiFi / Bluetooth
+- WiFi / Bluetooth do not use the same MAC address as the stock (ASUS) system by default
+- Bluetooth needs to be configured with an unique MAC address from userspace to make it work
+- [me176c-factory](/factory) can be used to apply the ASUS WiFi/BT MAC address from the factory partition
+
 ### Partitioning
 - Avoid repartitioning the internal storage, or only shrink the `data` partition. Some partitions on the internal storage
   contain important data (e.g. MAC addresses) and may be needed for the device to boot.
