@@ -70,6 +70,6 @@ This README contains instructions and (random) notes for using Linux on this dev
 ### Thermal
 Consider setting up a Thermal Daemon (e.g. [thermald](https://github.com/intel/thermal_daemon)) to monitor device
 temperature and to throttle the CPU performance early when the device gets too hot.
-  - Example setup: [Arch Linux `me176c-thermal` package](https://github.com/me176c-dev/archlinux-me176c/tree/master/me176c-thermal)
+  - [Custom configuration for thermald](/thermal) is provided in this repository.
 
 [me176c-acpi]: https://github.com/me176c-dev/me176c-acpi

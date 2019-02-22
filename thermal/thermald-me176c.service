@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL
+# Copyright (C) 2015 Intel Corporation
+# Modified from https://github.com/intel/thermal_daemon/blob/v1.8/data/thermald.service.in
+# to point to custom configuration for ME176C.
+
+[Unit]
+Description=Thermal Daemon Service (ME176C)
+
+[Service]
+Type=dbus
+SuccessExitStatus=1
+BusName=org.freedesktop.thermald
+ExecStart=/usr/bin/thermald --no-daemon --dbus-enable --ignore-cpuid-check --ignore-default-control --config-file=/etc/thermald/thermal-conf-me176c.xml
+
+[Install]
+WantedBy=multi-user.target
+Alias=dbus-org.freedesktop.thermald.service
