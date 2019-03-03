@@ -6,6 +6,8 @@ Description=Set WiFi MAC Address (%I)
 Requires=me176c-factory.service
 After=me176c-factory.service
 
+Before=wpa_supplicant@%i.service
+
 [Service]
 Type=oneshot
 EnvironmentFile=@RUNTIME_DIRECTORY@/environment
