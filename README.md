@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 OR GFDL-1.3-or-later -->
 
-# Linux on ASUS MeMO Pad 7 (ME176C[X])
+# Linux on ASUS MeMO Pad 7 (ME176C(X))
 This repository contains source code for using Linux on the ASUS MeMO Pad 7 (ME176C(X))),
 including a Linux kernel fork and userspace modules shared between different Linux distributions.
 

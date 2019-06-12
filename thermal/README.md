@@ -2,7 +2,7 @@
 
 # thermald-me176c
 This directory contains a custom configuration for [thermald]
-for the ASUS MeMO Pad 7 (ME176C[X]). It is based on similar trip points that
+for the ASUS MeMO Pad 7 (ME176C(X)). It is based on similar trip points that
 were used on the stock (Android) system of the tablet. They begin throttling
 quite early based on the device (not CPU) temperature.
 
