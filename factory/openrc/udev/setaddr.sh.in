@@ -1,0 +1,28 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2019 lambdadroid
+
+rc-service me176c-factory start
+
+addr=$(cat "@RUNTIME_DIRECTORY@/${1}addr")
+[ -n "$addr" ] || exit
+
+case "$1" in
+    wifi)
+        ip link set dev "$2" address "$addr"
+        ;;
+    bd)
+        # This tends to fail because the udev rule is trigged too early
+        # Loop with 2 seconds timeout to have a better chance to succeed
+        i=0
+        while [ $i -lt 20 ]; do
+                btmgmt -i "$2" public-addr "$addr" && exit
+                sleep 0.1
+                i=$((i + 1))
+        done
+        exit 1
+        ;;
+    *)
+        exit 1
+        ;;
+esac

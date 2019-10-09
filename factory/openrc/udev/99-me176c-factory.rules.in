@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2019 lambdadroid
+
+ACTION=="add", SUBSYSTEM=="net", KERNELS=="INT33BB:00", RUN+="@LIBRARY_DIRECTORY@/setaddr.sh wifi $name"
+ACTION=="add", SUBSYSTEM=="bluetooth", KERNELS=="80860F0A:01", RUN+="@LIBRARY_DIRECTORY@/setaddr.sh bd %k"

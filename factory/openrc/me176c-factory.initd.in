@@ -1,0 +1,11 @@
+#!/sbin/openrc-run
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2019 lambdadroid
+
+name="ME176C Factory"
+
+start() {
+	ebegin "Starting $name"
+	@LIBRARY_DIRECTORY@/me176c-factory @BLOCK_DEVICE@
+	eend $? "Failed to start $name"
+}
