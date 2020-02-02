@@ -39,7 +39,9 @@ that starts the service on boot. Optionally, udev rules together with
 to automatically set the WiFi/Bluetooth MAC address on boot.
 
 ### OpenRC
-TODO
+OpenRC + udev integration can be enabled with `-Dsystemd=false -Dopenrc=true`.
+It provides the `me176c-factory` service. Optionally, udev rules are provided
+to automatically set the WiFi/Bluetooth MAC address on boot.
 
 ## Packaging
 - **Arch Linux:** `me176c-factory` AUR package
