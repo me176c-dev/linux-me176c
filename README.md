@@ -5,9 +5,10 @@ This repository contains source code for using Linux on the ASUS MeMO Pad 7 (ME1
 including a Linux kernel fork and userspace modules shared between different Linux distributions.
 
 ## Kernel branches
-- **[Linux 4.19](https://github.com/me176c-dev/linux-me176c/tree/4.19):** `4.19`
+- **[Linux 5.4](https://github.com/me176c-dev/linux-me176c/tree/5.4):** `5.4`
 - **[Android (Linux 4.19)](https://github.com/me176c-dev/linux-me176c/tree/android-4.19):** `android-4.19`
 - Archived:
+  - [Linux 4.19](https://github.com/me176c-dev/linux-me176c/tree/4.19): `4.19`
   - [Linux 4.14](https://github.com/me176c-dev/linux-me176c/tree/4.14): `4.14`
   - [LineageOS 14.1 (Linux 4.14)](https://github.com/me176c-dev/linux-me176c/tree/cm-14.1): `cm-14.1`
 
