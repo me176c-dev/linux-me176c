@@ -4,6 +4,8 @@
 cc_library_static {
     name: "libme176c-factory",
     vendor: true,
+    recovery_available: true,
+
     srcs: ["me176c-factory.c"],
     export_include_dirs: ["."],
 }
